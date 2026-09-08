@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Standing Stones Tetris – Hollow Roads</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #0c1410;
+      color: #d0e8c0;
+      font-family: Georgia, 'Segoe UI', serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      user-select: none;
+      overflow-x: hidden;
+    }
+    h1 {
+      font-size: 1.35rem;
+      letter-spacing: 2px;
+      color: #b8e090;
+      text-shadow: 0 0 14px rgba(120, 180, 80, 0.45);
+      margin-bottom: 2px;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: 0.8rem;
+      color: #6a8a5a;
+      font-style: italic;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    #game-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 520px;
+    }
+    #board-wrap {
+      position: relative;
+    }
+    #board {
+      display: block;
+      border: 3px solid #3a5c3a;
+      border-radius: 6px;
+      background: #0a120c;
+      box-shadow: 0 0 24px rgba(40, 80, 40, 0.35);
+      max-width: 100%;
+      height: auto;
+    }
+    #side {
+      width: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel {
+      background: rgba(16, 28, 18, 0.9);
+      border: 1px solid #2e4a2e;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .panel h2 {
+      font-size: 0.72rem;
+      color: #8aba6a;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .stat {
+      font-size: 1.25rem;
+      color: #c8e8a8;
+      font-weight: bold;
+    }
+    #next-canvas {
+      display: block;
+      margin: 0 auto;
+      background: #0a120c;
+      border-radius: 4px;
+    }
+    #message {
+      margin-top: 12px;
+      font-size: 0.95rem;
+      color: #a8d080;
+      min-height: 1.3em;
+      text-align: center;
+      padding: 0 8px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #2a4a2a;
+      color: #d8f0c0;
+      border: 1px solid #4a7a4a;
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      transition: 0.15s;
+    }
+    button:active, .touch-btn:active {
+      background: #3a6a3a;
+      transform: scale(0.96);
+    }
+
+    /* Touch controls */
+    #touch-controls {
+      display: none;
+      margin-top: 14px;
+      width: 100%;
+      max-width: 340px;
+      touch-action: manipulation;
+    }
+    .touch-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .touch-btn {
+      width: 64px;
+      height: 54px;
+      background: #2a4a2a;
+      border: 2px solid #4a7a4a;
+      border-radius: 10px;
+      color: #d8f0c0;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .touch-btn.wide {
+      width: 138px;
+    }
+    .touch-btn.hard {
+      background: #3a5a2a;
+      border-color: #6a9a4a;
+    }
+
+    /* Mobile layout */
+    @media (max-width: 520px) {
+      #side {
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+      }
+      .panel {
+        flex: 1 1 80px;
+        min-width: 70px;
+        text-align: center;
+      }
+      #next-canvas {
+        width: 70px;
+        height: 70px;
+      }
+      #touch-controls {
+        display: block;
+      }
+      .desktop-only {
+        display: none;
+      }
+    }
+    @media (min-width: 521px) {
+      #touch-controls {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>STANDING STONES</h1>
+  <div class="subtitle">A Hollow Roads Legend</div>
+
+  <div id="game-wrap">
+    <div id="board-wrap">
+      <canvas id="board" width="300" height="600"></canvas>
+    </div>
+
+    <div id="side">
+      <div class="panel">
+        <h2>Next</h2>
+        <canvas id="next-canvas" width="90" height="90"></canvas>
+      </div>
+      <div class="panel">
+        <h2>Score</h2>
+        <div class="stat" id="score">0</div>
+      </div>
+      <div class="panel">
+        <h2>Lines</h2>
+        <div class="stat" id="lines">0</div>
+      </div>
+      <div class="panel">
+        <h2>Level</h2>
+        <div class="stat" id="level">1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Touch controls (shown on mobile) -->
+  <div id="touch-controls">
+    <div class="touch-row">
+      <div class="touch-btn" id="btnLeft">◀</div>
+      <div class="touch-btn" id="btnRotate">↻</div>
+      <div class="touch-btn" id="btnRight">▶</div>
+    </div>
+    <div class="touch-row">
+      <div class="touch-btn" id="btnDown">▼</div>
+      <div class="touch-btn wide hard" id="btnHard">DROP</div>
+    </div>
+  </div>
+
+  <div id="message">The stones begin to fall…</div>
+  <div class="btn-row">
+    <button id="btnStart">Begin the Legend</button>
+    <button id="btnPause">Pause</button>
+  </div>
+
+  <script>
+    const COLS = 10;
+    const ROWS = 20;
+    const BLOCK = 30;
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const nextCanvas = document.getElementById('next-canvas');
+    const nextCtx = nextCanvas.getContext('2d');
+
+    const COLORS = [
+      null,
+      '#4a7a3a',
+      '#6a9a4a',
+      '#3a6a5a',
+      '#8aba5a',
+      '#5a8a3a',
+      '#7aaa6a',
+      '#4a6a4a'
+    ];
+
+    const SHAPES = [
+      [],
+      [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+      [[2,2],[2,2]],
+      [[0,3,0],[3,3,3],[0,0,0]],
+      [[0,0,4],[4,4,4],[0,0,0]],
+      [[5,0,0],[5,5,5],[0,0,0]],
+      [[0,6,6],[6,6,0],[0,0,0]],
+      [[7,7,0],[0,7,7],[0,0,0]]
+    ];
+
+    let board = createBoard();
+    let piece = null;
+    let nextPiece = null;
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let dropInterval = 1000;
+    let lastDrop = 0;
+    let gameOver = false;
+    let paused = false;
+    let animId = null;
+    let softDropping = false;
+
+    function createBoard() {
+      return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    }
+
+    function randomPiece() {
+      const type = 1 + Math.floor(Math.random() * 7);
+      const shape = SHAPES[type].map(row => [...row]);
+      return {
+        type,
+        shape,
+        x: Math.floor(COLS / 2) - Math.ceil(shape[0].length / 2),
+        y: 0
+      };
+    }
+
+    function collide(p = piece, b = board) {
+      for (let y = 0; y < p.shape.length; y++) {
+        for (let x = 0; x < p.shape[y].length; x++) {
+          if (p.shape[y][x]) {
+            const nx = p.x + x;
+            const ny = p.y + y;
+            if (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && b[ny][nx])) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function merge() {
+      piece.shape.forEach((row, y) => {
+        row.forEach((val, x) => {
+          if (val && piece.y + y >= 0) {
+            board[piece.y + y][piece.x + x] = val;
+          }
+        });
+      });
+    }
+
+    function rotate() {
+      if (!piece || gameOver || paused) return;
+      const rotated = piece.shape[0].map((_, i) =>
+        piece.shape.map(row => row[i]).reverse()
+      );
+      const prev = piece.shape;
+      piece.shape = rotated;
+      if (collide()) {
+        piece.x++;
+        if (collide()) {
+          piece.x -= 2;
+          if (collide()) {
+            piece.x++;
+            piece.shape = prev;
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let cleared = 0;
+      for (let y = ROWS - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell !== 0)) {
+          board.splice(y, 1);
+          board.unshift(Array(COLS).fill(0));
+          cleared++;
+          y++;
+        }
+      }
+      if (cleared > 0) {
+        lines += cleared;
+        const points = [0, 100, 300, 500, 800][cleared] * level;
+        score += points;
+        level = Math.floor(lines / 10) + 1;
+        dropInterval = Math.max(120, 1000 - (level - 1) * 80);
+        document.getElementById('message').textContent =
+          cleared === 4 ? "Legend rises! Four stones aligned." :
+          cleared === 3 ? "The circle strengthens." :
+          cleared === 2 ? "Paths clear." : "A stone settles.";
+      }
+      updateStats();
+    }
+
+    function spawn() {
+      piece = nextPiece || randomPiece();
+      nextPiece = randomPiece();
+      if (collide()) {
+        gameOver = true;
+        document.getElementById('message').textContent = "The stones have fallen. The legend ends.";
+      }
+      drawNext();
+    }
+
+    function hardDrop() {
+      if (gameOver || paused || !piece) return;
+      while (!collide()) piece.y++;
+      piece.y--;
+      lock();
+    }
+
+    function moveLeft() {
+      if (gameOver || paused || !piece) return;
+      piece.x--;
+      if (collide()) piece.x++;
+    }
+
+    function moveRight() {
+      if (gameOver || paused || !piece) return;
+      piece.x++;
+      if (collide()) piece.x--;
+    }
+
+    function softDrop() {
+      if (gameOver || paused || !piece) return;
+      piece.y++;
+      if (collide()) {
+        piece.y--;
+        lock();
+      } else {
+        score += 1;
+        updateStats();
+      }
+    }
+
+    function lock() {
+      merge();
+      clearLines();
+      spawn();
+    }
+
+    function drawBlock(ctx, x, y, type, size = BLOCK) {
+      if (!type) return;
+      const color = COLORS[type];
+      ctx.fillStyle = color;
+      ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+      ctx.fillStyle = 'rgba(200, 240, 160, 0.25)';
+      ctx.fillRect(x * size + 2, y * size + 2, size - 6, 4);
+      ctx.fillRect(x * size + 2, y * size + 2, 4, size - 6);
+      ctx.fillStyle = 'rgba(180, 230, 140, 0.35)';
+      ctx.fillRect(x * size + size * 0.35, y * size + size * 0.35, size * 0.3, size * 0.3);
+      ctx.strokeStyle = 'rgba(20, 40, 20, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2);
+    }
+
+    function drawBoard() {
+      ctx.fillStyle = '#0a120c';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(40, 70, 40, 0.25)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= COLS; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * BLOCK, 0);
+        ctx.lineTo(x * BLOCK, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= ROWS; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * BLOCK);
+        ctx.lineTo(canvas.width, y * BLOCK);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (board[y][x]) drawBlock(ctx, x, y, board[y][x]);
+        }
+      }
+
+      if (piece && !gameOver) {
+        piece.shape.forEach((row, y) => {
+          row.forEach((val, x) => {
+            if (val) drawBlock(ctx, piece.x + x, piece.y + y, val);
+          });
+        });
+      }
+
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(10, 20, 12, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#c0e090';
+        ctx.font = '20px Georgia';
+        ctx.textAlign = 'center';
+        ctx.fillText('LEGEND ENDED', canvas.width / 2, canvas.height / 2 - 10);
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = '#8aba6a';
+        ctx.fillText('Press Begin to awaken again', canvas.width / 2, canvas.height / 2 + 18);
+      }
+    }
+
+    function drawNext() {
+      nextCtx.fillStyle = '#0a120c';
+      nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+      if (!nextPiece) return;
+      const shape = nextPiece.shape;
+      const size = 20;
+      const offsetX = (nextCanvas.width - shape[0].length * size) / 2;
+      const offsetY = (nextCanvas.height - shape.length * size) / 2;
+      shape.forEach((row, y) => {
+        row.forEach((val, x) => {
+          if (val) {
+            nextCtx.fillStyle = COLORS[val];
+            nextCtx.fillRect(offsetX + x * size + 1, offsetY + y * size + 1, size - 2, size - 2);
+          }
+        });
+      });
+    }
+
+    function updateStats() {
+      document.getElementById('score').textContent = score;
+      document.getElementById('lines').textContent = lines;
+      document.getElementById('level').textContent = level;
+    }
+
+    function gameLoop(time = 0) {
+      if (!paused && !gameOver) {
+        const interval = softDropping ? 40 : dropInterval;
+        if (time - lastDrop > interval) {
+          piece.y++;
+          if (collide()) {
+            piece.y--;
+            lock();
+          }
+          lastDrop = time;
+        }
+      }
+      drawBoard();
+      animId = requestAnimationFrame(gameLoop);
+    }
+
+    function reset() {
+      board = createBoard();
+      score = 0;
+      lines = 0;
+      level = 1;
+      dropInterval = 1000;
+      gameOver = false;
+      paused = false;
+      softDropping = false;
+      nextPiece = randomPiece();
+      spawn();
+      updateStats();
+      document.getElementById('message').textContent = "The stones begin to fall…";
+      document.getElementById('btnPause').textContent = "Pause";
+      if (animId) cancelAnimationFrame(animId);
+      lastDrop = performance.now();
+      gameLoop();
+    }
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+      if (gameOver && e.code !== 'KeyR') return;
+      if (e.code === 'KeyP') {
+        togglePause();
+        return;
+      }
+      if (paused || !piece) return;
+
+      switch (e.code) {
+        case 'ArrowLeft': moveLeft(); break;
+        case 'ArrowRight': moveRight(); break;
+        case 'ArrowDown': softDrop(); break;
+        case 'ArrowUp': rotate(); break;
+        case 'Space': e.preventDefault(); hardDrop(); break;
+      }
+    });
+
+    // Touch buttons
+    function bindTouch(id, fn, continuous = false) {
+      const el = document.getElementById(id);
+      let interval = null;
+
+      const start = (e) => {
+        e.preventDefault();
+        fn();
+        if (continuous) {
+          interval = setInterval(fn, 80);
+        }
+      };
+      const end = () => {
+        if (interval) clearInterval(interval);
+        interval = null;
+        softDropping = false;
+      };
+
+      el.addEventListener('touchstart', start, { passive: false });
+      el.addEventListener('touchend', end);
+      el.addEventListener('touchcancel', end);
+      el.addEventListener('mousedown', start);
+      el.addEventListener('mouseup', end);
+      el.addEventListener('mouseleave', end);
+    }
+
+    bindTouch('btnLeft', moveLeft, true);
+    bindTouch('btnRight', moveRight, true);
+    bindTouch('btnRotate', rotate);
+    bindTouch('btnDown', () => { softDropping = true; softDrop(); }, true);
+    bindTouch('btnHard', hardDrop);
+
+    function togglePause() {
+      if (gameOver) return;
+      paused = !paused;
+      document.getElementById('btnPause').textContent = paused ? "Resume" : "Pause";
+      document.getElementById('message').textContent = paused ? "The legend pauses…" : "The stones fall once more.";
+    }
+
+    document.getElementById('btnStart').onclick = reset;
+    document.getElementById('btnPause').onclick = togglePause;
+
+    // Prevent page scroll while touching controls
+    document.getElementById('touch-controls').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    // Initial state
+    drawBoard();
+    document.getElementById('message').textContent = "Press Begin the Legend to awaken the stones.";
+  </script>
+</body>
+</html>
